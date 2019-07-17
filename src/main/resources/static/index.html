@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <style>
+    #upload_area {
+        width:  500px;
+        height: 300px;
+        padding: 0px;
+        border: 1px solid #000000;
+    }
+    </style>
+</head>
+<body>
+<h1>File Upload Project</h1>
+<p>Drag one or more files to upload area.</p>
+<div id="upload_area"></div>
+<script>
+/*  
+ *  desc : event-binding function for uploading by drag and drop.
+ *  parameter :
+ *      0 : id of drop area tag
+ *      1 : callback function :
+ *              desc : render the DOM object about each file.
+ *              parameter :
+ *                  0 : File object
+ *      2 : callback function :
+ *              desc : render progress effect.
+ *              parameter :
+ *                  0 : File object
+ *                  1 : loaded size of uploading file
+ *                  2 : total size of uploading file
+ *      3 : server URI 
+ */
+let uploadByDragAndDrop = (dropAreaTagId,
+                            fileDOMHandling,
+                            pregressHandling,
+                            serverURI) => {
+
+    // get a target DOM object.
+    let dropAreaTagObj = document.getElementById(dropAreaTagId);
+    
+    // bind dragover event.
+    dropAreaTagObj.ondragover = event => {
+
+        // prevent file from being opened.
+        event.preventDefault();
+    }
+
+    // bind drop event.
+    dropAreaTagObj.ondrop = event => {
+
+        // prevent file from being opened.
+        event.preventDefault();
+
+        // get dropped files by using 'dataTransfer'.
+        let fileList = event.dataTransfer.files;
+
+        for(let i=0; i<fileList.length; i++) {
+
+            // get each file object.
+            let file = fileList[i];
+
+            // render file DOM using parameter function.
+            fileDOMHandling(file);
+
+            // pack file to 'FormData'.
+            let formData = new FormData();
+            formData.append('file', file);
+
+            // update each file to server using ajax.
+            let xhr = new XMLHttpRequest();
+            xhr.onreadystatechange = (event) => {
+
+                if(xhr.readyState != XMLHttpRequest.DONE) return;
+
+                if(xhr.status == 200) {
+
+                    // upload failed.
+                    if(!xhr.response) {
+                        console.log("upload failed :", file.name);
+                    }
+
+                    // upload success.
+                    console.log("upload success :", file.name);
+                } else {
+
+                    // handle error.
+                    console.error('ajax failed :', file.name);
+                }
+            }
+
+            // show progress bar.
+            xhr.upload.onprogress = ({loaded, total}) => {
+                pregressHandling(file, loaded, total);
+            };
+
+            xhr.open('POST', serverURI);
+            xhr.send(formData);
+        }
+    }
+}
+
+//bind event to drop area DOM object.
+uploadByDragAndDrop("upload_area",
+    file => {
+        console.log(file);
+    },
+    (file, loaded, total) => {
+        console.log(loaded, "/", total, ":", file.name);
+}, '/rest/file');
+
+</script>
+</body>
+</html>
